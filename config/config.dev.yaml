@@ -1,0 +1,5 @@
+origin_check:
+  enabled: false
+  acceptable_origins:
+    - http://localhost:3000
+    - http://localhost:8080
