@@ -21,6 +21,7 @@ dependencies = [
     "python-multipart==0.0.6",
     "pytz==2023.3",
     "redis==5.0.1",
+    "scikit-learn>=1.7.2",
     "uuid==1.30",
     "uvicorn[standard]==0.24.0",
 ]

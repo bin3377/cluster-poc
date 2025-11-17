@@ -2,12 +2,11 @@
 Cluster PoC API routes
 """
 
-from typing import List
-
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from app.models.cluster import ClusterRequest, ClusterResponse
+from app.services.cluster import calculate
 
 router = APIRouter()
 
@@ -40,7 +39,7 @@ def handle_error(error: Exception) -> JSONResponse:
 async def calculate_cluster(cluster_request: ClusterRequest):
     try:
         # print(cluster_request)
-        response = ClusterResponse(date=cluster_request.date, vehicles=[])
+        response = await calculate(cluster_request)
 
         return response
 

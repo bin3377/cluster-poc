@@ -8,9 +8,16 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
+class Vehicle(BaseModel):
+    id: str
+    driver_name: str
+    capacity: int
+
+
 class Booking(BaseModel):
     """Booking model representing a single booking"""
 
+    id: str
     client_name: str
 
     pickup_time: Optional[str]  # H:mm AM format
@@ -23,26 +30,31 @@ class Booking(BaseModel):
     dropoff_latitude: str
     dropoff_longitude: str
 
+    ontime: Optional[bool] = None
+
 
 class ClusterRequest(BaseModel):
     """ClusterRequest model representing the json request to the cluster API"""
 
     date: str  # MM/DD/YYYY format
     bookings: List[Booking]
+    vehicles: List[Vehicle]
 
 
 class Trip(BaseModel):
     """Trip model representing a single trip on a vehicle"""
 
     bookings: List[Booking]
-    distance: float
-    duration: float
+    distance: float = 0.0
+    duration: float = 0.0
+    start_time: str = ""  # H:mm AM format
+    end_time: str = ""  # H:mm AM format
 
 
-class Vehicle(BaseModel):
-    """Vehicle model representing a single vehicle"""
+class VehiclePlan(BaseModel):
+    """VehiclePlan model representing a single vehicle"""
 
-    driver_name: str
+    vehicle: Vehicle
     trips: List[Trip]
 
 
@@ -50,4 +62,4 @@ class ClusterResponse(BaseModel):
     """ClusterResponse model representing the json response from the cluster API"""
 
     date: str  # MM/DD/YYYY format
-    vehicles: List[Vehicle]
+    plan: List[VehiclePlan]
