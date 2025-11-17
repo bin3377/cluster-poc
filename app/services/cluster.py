@@ -63,36 +63,24 @@ def prepare_df(request: ClusterRequest) -> DataFrame:
 
     print(df)
 
-    # Standarize coordinate entries
-    df["pickup_latitude"] = pd.to_numeric(
-        df["pickup_latitude"].astype(str).str.extract(r"(-?\d+\.\d+)")[0],
-        errors="coerce",
-    )
-    df["pickup_longitude"] = pd.to_numeric(
-        df["pickup_longitude"].astype(str).str.extract(r"(-?\d+\.\d+)")[0],
-        errors="coerce",
-    )
-
-    print(df)
-
     return df
 
 
-def apply_clustering(df: DataFrame, n_vehicles: int) -> DataFrame:
+def apply_clustering(df: DataFrame, n_clusters: int) -> DataFrame:
     """
     Clustering bookings to groups geographically based on their pickup coordinates with K-means++
 
     Args:
         - df = subsetted dataframe from Step 1.
-        - n_vehicles = # of vehicles being deployed
+        - n_clusters = # of clusters will be divied into
 
     Returns:
         - dataframe with new column to assign clients to their respective clusters
     """
 
-    coords = df[["pickup-latitude", "pickup-longitude"]]  # Retrieve coords from the df
+    coords = df[["pickup_latitude", "pickup_longitude"]]  # Retrieve coords from the df
     kmeans = KMeans(
-        n_clusters=n_vehicles, init="k-means++", random_state=42
+        n_clusters=n_clusters, init="k-means++"
     )  # apply K-means++ clustering algorithm
     df["cluster"] = kmeans.fit_predict(
         coords

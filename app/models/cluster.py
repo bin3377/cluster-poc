@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 class Vehicle(BaseModel):
     id: str
-    driver_name: str
+    driver_name: Optional[str] = None
     capacity: int
 
 
@@ -22,13 +22,13 @@ class Booking(BaseModel):
 
     pickup_time: Optional[str]  # H:mm AM format
     pickup_address: str
-    pickup_latitude: str
-    pickup_longitude: str
+    pickup_latitude: float
+    pickup_longitude: float
 
     appointment_time: Optional[str]  # H:mm AM format
     dropoff_address: str
-    dropoff_latitude: str
-    dropoff_longitude: str
+    dropoff_latitude: float
+    dropoff_longitude: float
 
     ontime: Optional[bool] = None
 

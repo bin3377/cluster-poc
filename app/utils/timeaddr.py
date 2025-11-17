@@ -89,8 +89,6 @@ def get_datetime_by_timezone_id(
         tz = pytz.timezone(timezone_id)
 
         # Combine date and time
-        print("date_part:", date_part)
-        print("time_part:", time_part)
         local_dt = tz.localize(
             datetime(
                 year=date_part.year,
