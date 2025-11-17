@@ -33,8 +33,8 @@ class Booking(BaseModel):
     ontime: Optional[bool] = None
 
 
-class ClusterRequest(BaseModel):
-    """ClusterRequest model representing the json request to the cluster API"""
+class CarpoolRequest(BaseModel):
+    """CarpoolRequest model representing the json request to the cluster API"""
 
     date: str  # MM/DD/YYYY format
     bookings: List[Booking]
@@ -42,7 +42,7 @@ class ClusterRequest(BaseModel):
 
 
 class Trip(BaseModel):
-    """Trip model representing a single trip on a vehicle"""
+    """Trip model representing a carpooling trip of a vehicle"""
 
     bookings: List[Booking]
     distance: float = 0.0
@@ -52,14 +52,14 @@ class Trip(BaseModel):
 
 
 class VehiclePlan(BaseModel):
-    """VehiclePlan model representing a single vehicle"""
+    """VehiclePlan model representing the plan for single vehicle"""
 
     vehicle: Vehicle
     trips: List[Trip]
 
 
-class ClusterResponse(BaseModel):
-    """ClusterResponse model representing the json response from the cluster API"""
+class CarpoolResponse(BaseModel):
+    """CarpoolResponse model representing the json response from the cluster API"""
 
     date: str  # MM/DD/YYYY format
     plan: List[VehiclePlan]

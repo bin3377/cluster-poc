@@ -1,12 +1,12 @@
 """
-Cluster PoC API routes
+CarPool PoC API routes
 """
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from app.models.cluster import ClusterRequest, ClusterResponse
-from app.services.cluster import calculate
+from app.models.carpool import CarpoolRequest, CarpoolResponse
+from app.services.carpool import calculate
 
 router = APIRouter()
 
@@ -35,8 +35,8 @@ def handle_error(error: Exception) -> JSONResponse:
     )
 
 
-@router.post("/cluster", response_model=ClusterResponse)
-async def calculate_cluster(cluster_request: ClusterRequest):
+@router.post("/carpool", response_model=CarpoolResponse)
+async def calculate_carpool(cluster_request: CarpoolRequest):
     try:
         # print(cluster_request)
         response = await calculate(cluster_request)

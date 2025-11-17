@@ -5,7 +5,7 @@ FastAPI Cluster PoC Application
 import uvicorn
 from fastapi import FastAPI
 
-from app.routers import cluster
+from app.routers import carpool
 
 # Create FastAPI app
 app = FastAPI(
@@ -15,7 +15,7 @@ app = FastAPI(
 )
 
 # Include routers
-app.include_router(cluster.router, prefix="/api/v1")
+app.include_router(carpool.router, prefix="/api/v1")
 
 
 @app.get("/echo")

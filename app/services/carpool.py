@@ -1,13 +1,12 @@
-import unicodedata
 from typing import List
 
 import pandas as pd
 from pandas import DataFrame
 from sklearn.cluster import KMeans
 
-from app.models.cluster import (
-    ClusterRequest,
-    ClusterResponse,
+from app.models.carpool import (
+    CarpoolRequest,
+    CarpoolResponse,
     Trip,
     Vehicle,
     VehiclePlan,
@@ -15,14 +14,14 @@ from app.models.cluster import (
 from app.utils.timeaddr import get_datetime_by_address
 
 
-async def calculate(request: ClusterRequest) -> ClusterResponse:
+async def calculate(request: CarpoolRequest) -> CarpoolResponse:
     df = prepare_df(request)
     df = apply_clustering(df, len(request.vehicles))
 
-    return ClusterResponse(date=request.date, plan=[])
+    return CarpoolResponse(date=request.date, plan=[])
 
 
-def prepare_df(request: ClusterRequest) -> DataFrame:
+def prepare_df(request: CarpoolRequest) -> DataFrame:
     """
     Prepare Dataframe with reuqest
 
