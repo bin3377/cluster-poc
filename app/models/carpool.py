@@ -41,12 +41,24 @@ class Booking(BaseModel):
     passenger_count: int = 1
 
 
+class CarpoolConfig(BaseModel):
+    """CarpoolConfig model representing the configurable options of carpooling"""
+
+    # max time window for pickup_time in the same pool
+    max_wait_minutes: int = 60
+    # True if pooling nearby pickups (not only on exactly same address)
+    pool_neighbors: bool = False
+    # How many map areas if pooling nearby pickups
+    geo_clusters: int = 8
+
+
 class CarpoolRequest(BaseModel):
     """CarpoolRequest model representing the json request to the cluster API"""
 
     date: str  # MM/DD/YYYY format
     bookings: List[Booking]
     vehicles: List[Vehicle]
+    config: Optional[CarpoolConfig] = None
 
 
 class Trip(BaseModel):

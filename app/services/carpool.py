@@ -6,7 +6,7 @@ from pandas import DataFrame
 from sklearn.cluster import KMeans
 
 from app.models.carpool import (
-    Booking,
+    CarpoolConfig,
     CarpoolRequest,
     CarpoolResponse,
     Trip,
@@ -19,10 +19,28 @@ from app.utils.timeaddr import get_datetime_by_address
 async def calculate(request: CarpoolRequest) -> CarpoolResponse:
     df = prepare_df(request)
     df = group_same_addresses(df)
-    # df = group_close_coordinates(df, 2)
-    plan = assign_to_vehicle(df, request.vehicles)
-    #  = group_by_time(df)
-    # df = apply_clustering(df, len(request.vehicles))
+    if request.config is None:
+        request.config = CarpoolConfig()
+    if request.config.pool_neighbors:
+        df = group_close_coordinates(df, request.config.geo_clusters)
+    plan = assign_to_vehicle(df, request.vehicles, request.config.max_wait_minutes)
+
+    write_result_to_df(df, plan)
+    print("\n\n")
+    print(
+        df[
+            [
+                "id",
+                "client_name",
+                "pickup_time",
+                "cluster_id",
+                "group_key",
+                "vehicle_id",
+                "trip_id",
+            ]
+        ]
+    )
+    print("\n\n")
 
     return CarpoolResponse(date=request.date, plan=plan)
 
@@ -86,7 +104,7 @@ def group_same_addresses(df: DataFrame) -> DataFrame:
         if cnt > 1:
             mask = df["dropoff_address"] == addr
             df.loc[mask, "cluster_id"] = cluster_id
-            df.loc[mask, "group_key"] = "DROPOFF"
+            df.loc[mask, "group_key"] = "DROPOFF=" + addr
             cluster_id += 1
 
     # 3. group same pickup_address if has multiple entries and not grouped yet
@@ -95,10 +113,10 @@ def group_same_addresses(df: DataFrame) -> DataFrame:
             mask = (df["cluster_id"].isna()) & (df["pickup_address"] == addr)
             if mask.sum() > 0:
                 df.loc[mask, "cluster_id"] = cluster_id
-                df.loc[mask, "group_key"] = "PICKUP"
+                df.loc[mask, "group_key"] = "PICKUP=" + addr
                 cluster_id += 1
 
-    print(df[["dropoff_address", "pickup_address", "cluster_id"]])
+    # print(df[["client_name", "cluster_id"]])
 
     return df
 
@@ -147,22 +165,34 @@ def group_close_coordinates(
 
     # 4. write back to df['cluster_id']
     df.loc[mask, "cluster_id"] = labels + start
-    df.loc[mask, "group_key"] = "GEO"
+    df.loc[mask, "group_key"] = "GEO-" + labels.astype(str)
 
-    print(df[["pickup_latitude", "pickup_longitude", "cluster_id"]])
+    # print(df[["pickup_latitude", "pickup_longitude", "cluster_id"]])
 
     return df
+
+
+def _find_vehicle_idx_with_less_trips(
+    vehicles: List[Vehicle], result: Dict[Vehicle, List[Trip]]
+) -> int:
+    min = 999999999
+    for i, v in enumerate(vehicles):
+        if not result.get(v):
+            return i
+        trips = result.get(v)
+        if len(trips) < min:
+            min = len(trips)
+            min_idx = i
+    return min_idx
 
 
 def assign_bookings_to_vehicles(
     df: DataFrame,
     vehicles: List[Vehicle],
+    result: Dict[Vehicle, List[Trip]],
     max_wait_minutes: int,
-) -> Dict[Vehicle, List[Trip]]:
-    result: Dict[Vehicle, List[Trip]] = {}
-    for vehicle in vehicles:
-        result[vehicle] = []
-
+):
+    # print("assign_bookings_to_vehicles", len(df))
     # 1. divide into df with pickup_datetime (sort by time) and no pickup_datetime (OPEN)
     df_has_pickup = (
         df[df["pickup_datetime"].notna()].sort_values("pickup_datetime").copy()
@@ -170,13 +200,14 @@ def assign_bookings_to_vehicles(
     df_no_pickup = df[df["pickup_datetime"].isna()].copy()
 
     # 2. Greedy grouping for bookings has pickup_time
-    idx_vehicle = 0
+    idx_vehicle = _find_vehicle_idx_with_less_trips(vehicles, result)
     current_vehicle = vehicles[idx_vehicle]
     current_trip: Optional[Trip] = None
 
     def close_current_vehicle():
         # close current vehicle and round robin to the next vehicle
         nonlocal current_trip, idx_vehicle, current_vehicle, result
+
         if current_trip:
             result[current_vehicle].append(current_trip)
             idx_vehicle = (idx_vehicle + 1) % len(vehicles)
@@ -190,19 +221,15 @@ def assign_bookings_to_vehicles(
                 bookings=[row["raw"]],
                 start_time=row["pickup_datetime"],
             )
-            break
 
-        if row["pickup_datetime"] - current_trip.start_time <= timedelta(
-            minutes=max_wait_minutes
+        elif (
+            row["pickup_datetime"] - current_trip.start_time
+            <= timedelta(minutes=max_wait_minutes)
+            and current_vehicle.capacity
+            >= current_trip.total_passengers + row["passenger_count"]
         ):
-            # check time window
-            if (
-                current_vehicle.capacity
-                >= current_trip.total_passengers + row["passenger_count"]
-            ):
-                # check vehicle capacity
-                current_trip.bookings.append(Booking(row["raw"]))
-                break
+            # check time window and capacity
+            current_trip.bookings.append(row["raw"])
 
         else:
             # start a new trip
@@ -236,11 +263,29 @@ def assign_bookings_to_vehicles(
             )
             close_current_vehicle()
 
-    return result
+
+def write_result_to_df(df: DataFrame, plan: List[VehiclePlan]) -> DataFrame:
+    for vp in plan:
+        vehicle = vp.vehicle
+        trips = vp.trips
+        for trip_id, trip in enumerate(trips):
+            for b in trip.bookings:
+                mask = df["id"] == b.id
+                df.loc[mask, "vehicle_id"] = vehicle.id
+                df.loc[mask, "trip_id"] = trip_id
+
+    df.sort_values(["vehicle_id", "trip_id", "pickup_datetime"], inplace=True)
+    df.reset_index(inplace=True)
+    # df["trip_id"] = df["trip_id"].where(df["trip_id"].notna(), None).astype(int)
+    # df["cluster_id"] = (
+    #     df["cluster_id"].where(df["cluster_id"].notna(), None).astype(int)
+    # )
+
+    return df
 
 
 def assign_to_vehicle(
-    df: DataFrame, vehicles: List[Vehicle], max_wait_minutes: int = 30
+    df: DataFrame, vehicles: List[Vehicle], max_wait_minutes: int
 ) -> List[VehiclePlan]:
     """assign bookings to vehicles"""
 
@@ -254,16 +299,17 @@ def assign_to_vehicle(
     # 2. assign clustered bookings as multi-load trips
     df_clustered = df[df["cluster_id"].notna()]
 
+    # print("df_clustered", len(df_clustered))
+
     for cluster_id in df_clustered["cluster_id"].unique():
         cluster_df = df_clustered[df_clustered["cluster_id"] == cluster_id].copy()
-        result = result | assign_bookings_to_vehicles(
-            cluster_df, vehicles, max_wait_minutes
-        )
+        # print(cluster_df[["client_name", "cluster_id", "pickup_datetime"]])
+        assign_bookings_to_vehicles(cluster_df, vehicles, result, max_wait_minutes)
 
     # 3. assign non-clustered bookings as single-load trips
     df_non_clustered = df[df["cluster_id"].isna()].sort_values("passenger_count")
 
-    idx_vehicle = 0
+    idx_vehicle = _find_vehicle_idx_with_less_trips(vehicles, result)
     current_vehicle = vehicles[idx_vehicle]
 
     for _, row in df_non_clustered.iterrows():
