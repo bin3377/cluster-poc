@@ -2,7 +2,7 @@
 Booking models
 """
 
-# from datetime import datetime
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
@@ -12,6 +12,12 @@ class Vehicle(BaseModel):
     id: str
     driver_name: Optional[str] = None
     capacity: int
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return isinstance(other, Vehicle) and self.id == other.id
 
 
 class Booking(BaseModel):
@@ -32,6 +38,8 @@ class Booking(BaseModel):
 
     ontime: Optional[bool] = None
 
+    passenger_count: int = 1
+
 
 class CarpoolRequest(BaseModel):
     """CarpoolRequest model representing the json request to the cluster API"""
@@ -47,8 +55,12 @@ class Trip(BaseModel):
     bookings: List[Booking]
     distance: float = 0.0
     duration: float = 0.0
-    start_time: str = ""  # H:mm AM format
-    end_time: str = ""  # H:mm AM format
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+
+    @property
+    def total_passengers(self):
+        return sum(b.passenger_count for b in self.bookings)
 
 
 class VehiclePlan(BaseModel):

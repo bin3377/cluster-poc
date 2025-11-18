@@ -12,6 +12,7 @@ app = FastAPI(
     title="Cluster PoC API",
     description="FastAPI app of cluster-poc",
     version="1.0.0",
+    debug=True,
 )
 
 # Include routers

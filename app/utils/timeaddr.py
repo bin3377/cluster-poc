@@ -85,6 +85,9 @@ def get_datetime_by_timezone_id(
         if not time_part:
             raise ValueError(f'Invalid timeStr: "{time_str}".')
 
+        # print(date_part)
+        # print(time_part)
+
         # Create timezone-aware datetime
         tz = pytz.timezone(timezone_id)
 
@@ -99,6 +102,8 @@ def get_datetime_by_timezone_id(
                 second=0,
             )
         )
+
+        print(local_dt)
 
         return local_dt
 
