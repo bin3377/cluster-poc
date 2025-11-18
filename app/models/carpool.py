@@ -36,8 +36,6 @@ class Booking(BaseModel):
     dropoff_latitude: float
     dropoff_longitude: float
 
-    ontime: Optional[bool] = None
-
     passenger_count: int = 1
 
 
@@ -65,10 +63,7 @@ class Trip(BaseModel):
     """Trip model representing a carpooling trip of a vehicle"""
 
     bookings: List[Booking]
-    distance: float = 0.0
-    duration: float = 0.0
     start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
 
     @property
     def total_passengers(self):

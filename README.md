@@ -79,10 +79,7 @@ Calculates the carpool plan.
               "passenger_count": "int"
             }
           ],
-          "distance": "float",
-          "duration": "float",
-          "start_time": "datetime",
-          "end_time": "datetime"
+          "start_time": "datetime"
         }
       ]
     }
@@ -123,6 +120,16 @@ uv run uvicorn main:app --reload --port 8080
 ```
 
 The API will be available at `http://localhost:8080/docs`.
+
+### Try example payload
+
+```bash
+curl -sS -X 'POST' \
+  'http://localhost:8080/api/v1/carpool' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d @./example_request.json
+```
 
 ## Project Structure
 
